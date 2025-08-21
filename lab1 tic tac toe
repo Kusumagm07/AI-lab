@@ -1,0 +1,87 @@
+def print_board(board):
+    for row in board:
+        print(" | ".join(row))
+        print("-" * 5)
+
+def check_winner(board, player):
+    # Rows, cols, diags
+    for i in range(3):
+        if all(board[i][j] == player for j in range(3)):
+            return True
+        if all(board[j][i] == player for j in range(3)):
+            return True
+    if all(board[i][i] == player for i in range(3)):
+        return True
+    if all(board[i][2 - i] == player for i in range(3)):
+        return True
+    return False
+
+def can_win_next(board, player):
+    for i in range(3):
+        for j in range(3):
+            if board[i][j] == " ":
+                board[i][j] = player
+                if check_winner(board, player):
+                    board[i][j] = " "
+                    return (i, j)
+                board[i][j] = " "
+    return None
+
+def ai_move(board):
+    # 1. Win if possible
+    move = can_win_next(board, "O")
+    if move:
+        return move
+    # 2. Block if human can win next
+    move = can_win_next(board, "X")
+    if move:
+        return move
+    # 3. Else first free spot
+    for i in range(3):
+        for j in range(3):
+            if board[i][j] == " ":
+                return (i, j)
+
+def main():
+    board = [[" " for _ in range(3)] for _ in range(3)]
+    print("You are X, AI is O")
+    print_board(board)
+
+    while True:
+        # Human turn
+        while True:
+            try:
+                move = input("Enter your move (row,col 0-based): ")
+                r, c = map(int, move.split(","))
+                if 0 <= r <= 2 and 0 <= c <= 2 and board[r][c] == " ":
+                    board[r][c] = "X"
+                    break
+                else:
+                    print("Invalid move, try again")
+            except:
+                print("Enter row,col like 1,2")
+
+        print_board(board)
+        if check_winner(board, "X"):
+            print("You win! Congrats!")
+            break
+        if all(board[i][j] != " " for i in range(3) for j in range(3)):
+            print("It's a draw!")
+            break
+
+        # AI turn
+        r, c = ai_move(board)
+        board[r][c] = "O"
+        print(f"AI moves at {r},{c}")
+        print_board(board)
+
+        if check_winner(board, "O"):
+            print("AI wins! Better luck next time.")
+            break
+        if all(board[i][j] != " " for i in range(3) for j in range(3)):
+            print("It's a draw!")
+            break
+
+if __name__ == "__main__":
+    main()
+
