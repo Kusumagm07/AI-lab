@@ -1,0 +1,98 @@
+from collections import deque
+
+# Grid Layout:
+# A B
+# C D
+# Indices:
+# A = (0,0), B = (0,1), C = (1,0), D = (1,1)
+
+# Goal state: all rooms clean (0)
+goal_state = [[0, 0],
+              [0, 0]]   # 0 = Clean, 1 = Dirty
+
+# Possible moves: Up, Down, Left, Right
+moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+def is_goal(state):
+    """Check if all rooms are clean"""
+    return state == goal_state
+
+def generate_next_states(state, vacuum_pos):
+    """Generate all possible next states from current state"""
+    next_states = []
+    x, y = vacuum_pos
+
+    # 1. If current room is dirty -> clean it
+    if state[x][y] == 1:
+        new_state = [row[:] for row in state]
+        new_state[x][y] = 0
+        next_states.append((new_state, (x, y), "Suck"))
+
+    # 2. Move in four directions
+    for dx, dy in moves:
+        new_x, new_y = x + dx, y + dy
+        if 0 <= new_x < 2 and 0 <= new_y < 2:  # inside grid
+            next_states.append((state, (new_x, new_y), f"Move to {(new_x, new_y)}"))
+
+    return next_states
+
+def print_grid(state, vacuum_pos=None):
+    """Print the current grid state with vacuum position"""
+    for i in range(2):
+        row = ""
+        for j in range(2):
+            if vacuum_pos == (i, j):
+                row += f"[V]"  # Vacuum is here
+            elif state[i][j] == 1:
+                row += "[D]"  # Dirty
+            else:
+                row += "[C]"  # Clean
+        print(row)
+    print("------")
+
+def bfs(initial_state, start_pos):
+    """BFS to find sequence of actions to clean all rooms"""
+    queue = deque([(initial_state, start_pos, [], 0)])  # (state, position, actions, cost)
+    visited = set()
+
+    while queue:
+        state, pos, actions, cost = queue.popleft()
+
+        # Convert to tuple for visited check
+        state_tuple = tuple(tuple(row) for row in state)
+        pos_tuple = tuple(pos)
+
+        if (state_tuple, pos_tuple) in visited:
+            continue
+        visited.add((state_tuple, pos_tuple))
+
+        # Goal check
+        if is_goal(state):
+            return actions, cost
+
+        # Expand children
+        for next_state, next_pos, act in generate_next_states(state, pos):
+            queue.append(( [row[:] for row in next_state], next_pos, actions + [(act, next_state, next_pos)], cost + 1 ))
+
+    return None, -1
+
+# -----------------------------
+# Example Run
+# -----------------------------
+# Initial state: 1 = Dirty, 0 = Clean
+initial_state = [[1, 1],   # A = Dirty, B = Dirty
+                 [1, 1]]   # C = Dirty, D = Dirty
+
+start_pos = (0, 0)  # Vacuum starts at A
+
+solution, cost = bfs(initial_state, start_pos)
+
+if solution:
+    print(f"Solution found in {cost} steps:\n")
+    step_num = 1
+    for act, state, pos in solution:
+        print(f"Step {step_num}: {act}")
+        print_grid(state, pos)
+        step_num += 1
+else:
+    print("No solution found.")

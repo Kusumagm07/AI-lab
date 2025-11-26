@@ -1,0 +1,141 @@
+def resolve(clause1, clause2):
+    """
+    Simulates the resolution step between two clauses.
+    Looks for a complementary literal (L and ¬L) and returns the resolvent.
+    
+    Args:
+        clause1 (set): The first parent clause.
+        clause2 (set): The second parent clause.
+        
+    Returns:
+        set or None: The resolvent clause (a set) or None if no resolution is possible.
+    """
+    # The resolution rule: Find a literal in one clause and its negation in the other.
+    for literal1 in clause1:
+        # Determine the negation of literal1
+        # Negation is represented by adding/removing the '-' prefix
+        negation_of_literal1 = literal1[1:] if literal1.startswith('-') else '-' + literal1
+        
+        if negation_of_literal1 in clause2:
+            # Resolution is possible: 
+            # 1. Remove the literal and its negation from the parent clauses.
+            # 2. Combine the remaining literals using the union operator (|).
+            resolvent = (clause1 - {literal1}) | (clause2 - {negation_of_literal1})
+            return resolvent
+    return None
+
+def run_resolution_proof():
+    """
+    Executes the Resolution Refutation proof for the 'Scrooge is not a child' problem.
+    """
+    # --- PREDICATE MAPPING ---
+    # A dictionary to map human-readable names to simplified literals for the code
+    P = {
+        "C(Sc)": "C_Scrooge",            # Scrooge is a child
+        "L(Sc, S)": "L_Scrooge_Santa",  # Scrooge loves Santa
+        "R(Ru)": "R_Rudolph",            # Rudolph is a reindeer
+        "N(Ru)": "N_Rudolph",            # Rudolph has a red nose
+        "W(Ru)": "W_Rudolph",            # Rudolph is weird
+        "A(Ru)": "A_Rudolph",            # Rudolph is a clown
+        "L(Sc, Ru)": "L_Scrooge_Rudolph", # Scrooge loves Rudolph
+    }
+
+    # --- KNOWLEDGE BASE (KB) and NEGATED GOAL (CNF Clauses) ---
+    # Clauses use negative signs for negation, e.g., -C_Scrooge for ¬C(Scrooge)
+    
+    # 1. ¬C(x) ∨ L(x, S) -> Specific instance used: ¬C(Sc) ∨ L(Sc, S)
+    clause1 = {"-C_Scrooge", P["L(Sc, S)"]}
+    
+    # 2. ¬L(x, S) ∨ ¬R(y) ∨ L(x, y) -> Specific instance: ¬L(Sc, S) ∨ ¬R(Ru) ∨ L(Sc, Ru)
+    clause2 = {"-L_Scrooge_Santa", "-R_Rudolph", P["L(Sc, Ru)"]} 
+    
+    # 3. R(Ru) and N(Ru)
+    clause3_R = {P["R(Ru)"]}
+    clause3_N = {P["N(Ru)"]}
+    
+    # 4. ¬N(x) ∨ W(x) ∨ A(x) -> Specific instance: ¬N(Ru) ∨ W(Ru) ∨ A(Ru)
+    clause4 = {"-N_Rudolph", P["W(Ru)"], P["A(Ru)"]} 
+    
+    # 5. ¬R(x) ∨ ¬A(x) -> Specific instance: ¬R(Ru) ∨ ¬A(Ru)
+    clause5 = {"-R_Rudolph", "-A_Rudolph"}
+    
+    # 6. ¬W(x) ∨ ¬L(Sc, x) -> Specific instance: ¬W(Ru) ∨ ¬L(Sc, Ru)
+    clause6 = {"-W_Rudolph", "-L_Scrooge_Rudolph"} 
+    
+    # 8. NEGATED GOAL: C(Sc) (Scrooge is a child)
+    negated_goal = {P["C(Sc)"]}
+
+    # Store all clauses for tracking (index starts at 0 for list, but logically they are clause 1 to 8)
+    CLAUSES = [clause1, clause2, clause3_R, clause3_N, clause4, clause5, clause6, negated_goal]
+    EMPTY_CLAUSE = set()
+
+    print("--- Starting Resolution Refutation Proof ---")
+    print(f"Goal: {P['C(Sc)']} is FALSE (i.e., ¬C(Sc) is TRUE)")
+    print(f"Starting with Negated Goal (Clause 8): {negated_goal}")
+    print("-" * 35)
+    
+    # --- RESOLUTION STEPS (9 through 16) ---
+    try:
+        # Step 9: (8) C(Sc) and (1) ¬C(Sc) ∨ L(Sc, S) -> L(Sc, S)
+        c8 = CLAUSES[7] # {C_Scrooge}
+        c1 = CLAUSES[0] # {-C_Scrooge, L_Scrooge_Santa}
+        c9 = resolve(c8, c1)
+        if c9 is None: raise Exception("Step 9 failed.")
+        print(f"9. Resolved (8) and (1) -> {c9}")
+        
+        # Step 10: (9) L(Sc, S) and (2) ¬L(Sc, S) ∨ ¬R(Ru) ∨ L(Sc, Ru) -> ¬R(Ru) ∨ L(Sc, Ru)
+        c2 = CLAUSES[1]
+        c10 = resolve(c9, c2)
+        if c10 is None: raise Exception("Step 10 failed.")
+        print(f"10. Resolved (9) and (2) -> {c10}")
+
+        # Step 11: (3) R(Ru) and (10) ¬R(Ru) ∨ L(Sc, Ru) -> L(Sc, Ru)
+        c3_R = CLAUSES[2]
+        c11 = resolve(c3_R, c10)
+        if c11 is None: raise Exception("Step 11 failed.")
+        print(f"11. Resolved (3) and (10) -> {c11}")
+            
+        # Step 12: (3) N(Ru) and (4) ¬N(Ru) ∨ W(Ru) ∨ A(Ru) -> W(Ru) ∨ A(Ru)
+        c3_N = CLAUSES[3]
+        c4 = CLAUSES[4]
+        c12 = resolve(c3_N, c4)
+        if c12 is None: raise Exception("Step 12 failed.")
+        print(f"12. Resolved (3) and (4) -> {c12}")
+            
+        # Step 13: (12) W(Ru) ∨ A(Ru) and (5) ¬R(Ru) ∨ ¬A(Ru) -> W(Ru) ∨ ¬R(Ru)
+        c5 = CLAUSES[5]
+        c13 = resolve(c12, c5)
+        if c13 is None: raise Exception("Step 13 failed.")
+        print(f"13. Resolved (12) and (5) -> {c13}")
+
+        # Step 14: (3) R(Ru) and (13) W(Ru) ∨ ¬R(Ru) -> W(Ru)
+        c14 = resolve(c3_R, c13)
+        if c14 is None: raise Exception("Step 14 failed.")
+        print(f"14. Resolved (3) and (13) -> {c14}")
+
+        # Step 15: (14) W(Ru) and (6) ¬W(Ru) ∨ ¬L(Sc, Ru) -> ¬L(Sc, Ru)
+        c6 = CLAUSES[6]
+        c15 = resolve(c14, c6)
+        if c15 is None: raise Exception("Step 15 failed.")
+        print(f"15. Resolved (14) and (6) -> {c15}")
+            
+        # Step 16: (11) L(Sc, Ru) and (15) ¬L(Sc, Ru) -> {} (Empty Clause)
+        c16 = resolve(c11, c15)
+        
+        print("-" * 35)
+
+        if c16 == EMPTY_CLAUSE:
+            print(f"16. Resolved (11) and (15) -> {c16} (EMPTY CLAUSE)")
+            print("\n*** PROOF SUCCESSFUL! ***")
+            print("The generation of the empty clause confirms a contradiction with the negated goal.")
+            print("Conclusion: Scrooge is not a child (¬C(Sc)) is PROVEN TRUE.")
+        else:
+            print("Proof failed: Did not find the empty clause.")
+            
+    except Exception as e:
+        print(f"\nProof failed early: {e}")
+        print("A step in the manual deduction failed, meaning the specific literal pairs used in that step were not found in the clauses.")
+
+
+if __name__ == "__main__":
+    run_resolution_proof()

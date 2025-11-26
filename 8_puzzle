@@ -1,0 +1,84 @@
+from collections import deque
+
+goal_state = [[1, 2, 3],
+              [4, 5, 6],
+              [7, 8, 0]]   # 0 = blank tile
+
+moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+def find_blank(state):
+    for i in range(3):
+        for j in range(3):
+            if state[i][j] == 0:
+                return i, j
+    return None
+
+def is_goal(state):
+    return state == goal_state
+
+def generate_next_states(state):
+    next_states = []
+    x, y = find_blank(state)
+    for dx, dy in moves:
+        new_x, new_y = x + dx, y + dy
+        if 0 <= new_x < 3 and 0 <= new_y < 3:
+            new_state = [row[:] for row in state]
+            new_state[x][y], new_state[new_x][new_y] = new_state[new_x][new_y], new_state[x][y]
+            next_states.append(new_state)
+    return next_states
+
+def flatten(state):
+    """Flatten 2D list into 1D"""
+    return [num for row in state for num in row]
+
+def count_inversions(state):
+    """Count inversions in 8-puzzle"""
+    arr = [num for num in flatten(state) if num != 0]  # ignore blank
+    inv_count = 0
+    for i in range(len(arr)):
+        for j in range(i+1, len(arr)):
+            if arr[i] > arr[j]:
+                inv_count += 1
+    return inv_count
+
+def is_solvable(state):
+    """Check if puzzle is solvable"""
+    return count_inversions(state) % 2 == 0
+
+def bfs(initial_state):
+    queue = deque([(initial_state, [], 0)])  # (state, path, cost)
+    visited = set()
+
+    while queue:
+        state, path, cost = queue.popleft()
+        state_tuple = tuple(tuple(row) for row in state)
+
+        if state_tuple in visited:
+            continue
+        visited.add(state_tuple)
+
+        if is_goal(state):
+            return path + [state], cost
+
+        for next_state in generate_next_states(state):
+            queue.append((next_state, path + [state], cost + 1))
+
+    return None, -1
+
+
+# -----------------------------
+# Example Run
+# -----------------------------
+initial_state = [[4, 2, 3],
+                 [1, 0, 6],
+                 [5, 7, 8]]
+
+if is_solvable(initial_state):
+    solution, cost = bfs(initial_state)
+    print(f"Solution found in {cost} moves:\n")
+    for step in solution:
+        for row in step:
+            print(row)
+        print("------")
+else:
+    print("This initial state is UNSOLVABLE ❌")
